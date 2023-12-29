@@ -1,8 +1,9 @@
 import asyncio
-from gpt_researcher.utils.llm import *
-from gpt_researcher.scraper import Scraper
-from gpt_researcher.master.prompts import *
 import json
+
+from gpt_researcher.master.prompts import *
+from gpt_researcher.scraper import Scraper
+from gpt_researcher.utils.llm import *
 
 
 def get_retriever(retriever):
@@ -18,28 +19,36 @@ def get_retriever(retriever):
     match retriever:
         case "tavily":
             from gpt_researcher.retrievers import TavilySearch
+
             retriever = TavilySearch
         case "tavily_news":
             from gpt_researcher.retrievers import TavilyNews
+
             retriever = TavilyNews
         case "google":
             from gpt_researcher.retrievers import GoogleSearch
+
             retriever = GoogleSearch
         case "searx":
             from gpt_researcher.retrievers import SearxSearch
+
             retriever = SearxSearch
         case "serpapi":
             raise NotImplementedError("SerpApiSearch is not fully implemented yet.")
             from gpt_researcher.retrievers import SerpApiSearch
+
             retriever = SerpApiSearch
         case "googleSerp":
             from gpt_researcher.retrievers import SerperSearch
+
             retriever = SerperSearch
         case "duckduckgo":
             from gpt_researcher.retrievers import Duckduckgo
+
             retriever = Duckduckgo
         case "BingSearch":
             from gpt_researcher.retrievers import BingSearch
+
             retriever = BingSearch
 
         case _:
@@ -60,18 +69,24 @@ async def choose_agent(query, cfg):
         agent_role_prompt: Agent role prompt
     """
     try:
-        response = await create_chat_completion(
-            model=cfg.smart_llm_model,
-            messages=[
-                {"role": "system", "content": f"{auto_agent_instructions()}"},
-                {"role": "user", "content": f"task: {query}"}],
-            temperature=0,
-            llm_provider=cfg.llm_provider
+        # response = await create_chat_completion(
+        #     model=cfg.smart_llm_model,
+        #     messages=[
+        #         {"role": "system", "content": f"{auto_agent_instructions()}"},
+        #         {"role": "user", "content": f"task: {query}"}],
+        #     temperature=0,
+        #     llm_provider=cfg.llm_provider
+        # )
+        # agent_dict = json.loads(response)
+        return (
+            "📚 Education Research Agent",
+            "Eres un investigador educativo en España. Tu tarea es crear sintesis de fuentes bibliograficas unicamente basado en sitios web autoritativos",
         )
-        agent_dict = json.loads(response)
-        return agent_dict["server"], agent_dict["agent_role_prompt"]
-    except Exception as e:
-        return "Default Agent", "You are an AI critical thinker research assistant. Your sole purpose is to write well written, critically acclaimed, objective and structured reports on given text."
+    except Exception:
+        return (
+            "Default Agent",
+            "You are an AI critical thinker research assistant. Your sole purpose is to write well written, critically acclaimed, objective and structured reports on given text.",
+        )
 
 
 async def get_sub_queries(query, agent_role_prompt, cfg):
@@ -91,9 +106,15 @@ async def get_sub_queries(query, agent_role_prompt, cfg):
         model=cfg.smart_llm_model,
         messages=[
             {"role": "system", "content": f"{agent_role_prompt}"},
-            {"role": "user", "content": generate_search_queries_prompt(query, max_iterations=max_research_iterations)}],
+            {
+                "role": "user",
+                "content": generate_search_queries_prompt(
+                    query, max_iterations=max_research_iterations
+                ),
+            },
+        ],
         temperature=0,
-        llm_provider=cfg.llm_provider
+        llm_provider=cfg.llm_provider,
     )
     sub_queries = json.loads(response)
     return sub_queries
@@ -111,7 +132,11 @@ def scrape_urls(urls, cfg=None):
 
     """
     content = []
-    user_agent = cfg.user_agent if cfg else "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0"
+    user_agent = (
+        cfg.user_agent
+        if cfg
+        else "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0"
+    )
     try:
         content = Scraper(urls, user_agent).run()
     except Exception as e:
@@ -145,13 +170,13 @@ async def summarize(query, content, agent_role_prompt, cfg, websocket=None):
     def chunk_content(raw_content, chunk_size=10000):
         words = raw_content.split()
         for i in range(0, len(words), chunk_size):
-            yield ' '.join(words[i:i+chunk_size])
+            yield " ".join(words[i : i + chunk_size])
 
     # Process each item one by one, but process chunks in parallel
     concatenated_summaries = []
     for item in content:
-        url = item['url']
-        raw_content = item['raw_content']
+        url = item["url"]
+        raw_content = item["raw_content"]
 
         # Create tasks for all chunks of the current URL
         chunk_tasks = [handle_task(url, chunk) for chunk in chunk_content(raw_content)]
@@ -161,8 +186,8 @@ async def summarize(query, content, agent_role_prompt, cfg, websocket=None):
 
         # Aggregate and concatenate summaries for the current URL
         summaries = [summary for _, summary in chunk_summaries if summary]
-        concatenated_summary = ' '.join(summaries)
-        concatenated_summaries.append({'url': url, 'summary': concatenated_summary})
+        concatenated_summary = " ".join(summaries)
+        concatenated_summaries.append({"url": url, "summary": concatenated_summary})
 
     return concatenated_summaries
 
@@ -186,17 +211,22 @@ async def summarize_url(query, raw_data, agent_role_prompt, cfg):
             model=cfg.fast_llm_model,
             messages=[
                 {"role": "system", "content": f"{agent_role_prompt}"},
-                {"role": "user", "content": f"{generate_summary_prompt(query, raw_data)}"}],
+                {
+                    "role": "user",
+                    "content": f"{generate_summary_prompt(query, raw_data)}",
+                },
+            ],
             temperature=0,
-            llm_provider=cfg.llm_provider
+            llm_provider=cfg.llm_provider,
         )
     except Exception as e:
         print(f"{Fore.RED}Error in summarize: {e}{Style.RESET_ALL}")
     return summary
 
 
-
-async def generate_report(query, context, agent_role_prompt, report_type, websocket, cfg):
+async def generate_report(
+    query, context, agent_role_prompt, report_type, websocket, cfg
+):
     """
     generates the final report
     Args:
@@ -218,12 +248,16 @@ async def generate_report(query, context, agent_role_prompt, report_type, websoc
             model=cfg.smart_llm_model,
             messages=[
                 {"role": "system", "content": f"{agent_role_prompt}"},
-                {"role": "user", "content": f"{generate_prompt(query, context, cfg.report_format, cfg.total_words)}"}],
+                {
+                    "role": "user",
+                    "content": f"{generate_prompt(query, context, cfg.report_format, cfg.total_words)}",
+                },
+            ],
             temperature=0,
             llm_provider=cfg.llm_provider,
             stream=True,
             websocket=websocket,
-            max_tokens=cfg.smart_token_limit
+            max_tokens=cfg.smart_token_limit,
         )
     except Exception as e:
         print(f"{Fore.RED}Error in generate_report: {e}{Style.RESET_ALL}")
