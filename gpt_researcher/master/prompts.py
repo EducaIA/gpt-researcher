@@ -14,7 +14,7 @@ def generate_search_queries_prompt(question, max_iterations=3):
     )
 
 
-def generate_report_prompt(question, context, report_format="apa", total_words=150):
+def generate_report_prompt(question, context, report_format="apa", total_words=1000):
     """Generates the report prompt for the given question and research summary.
     Args: question (str): The question to generate the report prompt for
             research_summary (str): The research summary to generate the report prompt for
@@ -43,7 +43,7 @@ def generate_report_prompt(question, context, report_format="apa", total_words=1
 
 
 def generate_resource_report_prompt(
-    question, context, report_format="apa", total_words=1000
+    question, context, report_format="apa", total_words=2000
 ):
     """Generates the resource report prompt for the given question and research summary.
 
