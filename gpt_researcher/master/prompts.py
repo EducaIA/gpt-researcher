@@ -1,7 +1,7 @@
 from datetime import datetime
 
 
-def generate_search_queries_prompt(question, max_iterations=3):
+def generate_search_queries_prompt(question, max_iterations=5):
     """Generates the search queries prompt for the given question.
     Args: question (str): The question to generate the search queries prompt for
     Returns: str: The search queries prompt for the given question
@@ -23,7 +23,7 @@ def generate_report_prompt(question, context, report_format="apa", total_words=1
 
     return (
         f'Information: """{context}"""\n\n'
-        f"Using the above information, answer the following, in the language of the question,"
+        f"Using only the above information, answer the following, in the language of the question,"
         f' query or task: "{question}" in a detailed report --'
         " The report should focus on the answer to the query, should be well structured, informative,"
         f" in depth and comprehensive, with facts and numbers derived from external sources only and a minimum of {total_words} words.\n"
